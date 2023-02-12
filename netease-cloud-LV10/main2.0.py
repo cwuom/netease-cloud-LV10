@@ -439,7 +439,7 @@ if __name__ == '__main__':
         t1.start()
         start()
 
-        for y in range(10):
+        for y in range(86400):
             time.sleep(1)
             print("\r[Waitting] 下次运行:", 86400 - y, end="", flush=True)
             stop_thread(t1)
