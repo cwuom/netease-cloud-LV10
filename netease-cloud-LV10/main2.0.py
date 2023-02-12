@@ -42,6 +42,7 @@ import random
 # 选取次数 [因为推荐的内容很多是已知的，当无法刷到300首时可以适当增加p值]
 p = 25
 
+
 # 你的API接口 [最后不要加斜杠] eg http://127.0.0.1:3000
 api = "http://localhost:3000"
 # 你的歌单ID(喜欢列表)
@@ -405,6 +406,7 @@ headers = {'content-type': "application/json",
 # [api]/likelist [ids]
 
 def StopAllThread():
+    global OnSleep
     global Already300
     while not OnSleep:
         for t in ThreadList:
@@ -412,6 +414,7 @@ def StopAllThread():
                 stop_thread(t)
                 print("\r[STOPPING] 正在终止进程 >", t, end="", flush=True)
                 Already300 = True
+                OnSleep = True
             except:
                 pass
     print("\n[KILL] OK")
@@ -424,14 +427,14 @@ def StopListener():
 
 
 if __name__ == '__main__':
-    Already300 = False
-    StopPlay = False
-    x = 0
-    s = 0
-    ThreadList = []
-    OnSleep = False
-
     while True:
+        Already300 = False
+        StopPlay = False
+        x = 0
+        s = 0
+        ThreadList = []
+        OnSleep = False
+        
         t1 = Thread(target=StopListener, args=())
         t1.start()
         start()
@@ -439,5 +442,6 @@ if __name__ == '__main__':
         for y in range(10):
             time.sleep(1)
             print("\r[Waitting] 下次运行:", 86400 - y, end="", flush=True)
+            stop_thread(t1)
             OnSleep = True
 
