@@ -74,7 +74,7 @@ def startPlay2():
     try:
         sidList = []
 
-        source_ids = json.loads(requests.get("http://localhost:3000/recommend/resource", cookies=cookies, headers=headers).text)
+        source_ids = json.loads(requests.get(api+"/recommend/resource", cookies=cookies, headers=headers).text)
         for ids in source_ids["recommend"]:
             id = ids["id"]
             sidList.append(id)
@@ -84,7 +84,7 @@ def startPlay2():
         musicIdsList = []
         for ids in sidList:
             # /playlist/track/all?id=24381616
-            musicList = json.loads(requests.get("http://localhost:3000/playlist/track/all?id="+str(ids), cookies=cookies, headers=headers).text)
+            musicList = json.loads(requests.get(api+"/playlist/track/all?id="+str(ids), cookies=cookies, headers=headers).text)
             for id in musicList["privileges"]:
                 print("获取到音乐:",id["id"])
                 musicIdsList.append(id["id"])
