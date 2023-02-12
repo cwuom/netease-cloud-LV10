@@ -1,10 +1,20 @@
+import ctypes
+import inspect
 import sys
 
+import keyboard
 import requests
 import time
 from threading import Thread
 import json
 import random
+
+"""
+使用前请先安装上面的库
+=====================================
+管理员运行CMD
+> pip3 install 缺失的库名(import后面) -i https://pypi.tuna.tsinghua.edu.cn/simple
+"""
 
 """
 网易云一键LV10
@@ -24,6 +34,8 @@ import random
 
 @im-cwuom - bilibili
        请关注我
+
+注: 按下回车终止所有线程
 """
 
 # ==============================================配置==============================================
@@ -85,6 +97,7 @@ ExpectationNum = 250
 # 给网易云喘息的机会，不然容易风控，如果你觉得影响效率可适当降低此数值
 SleepTime = 1.3
 
+
 # ==============================================================================================
 
 
@@ -98,11 +111,19 @@ StopPlay = False
 # UID
 uid = 0
 
-s = 1
+# 记录听歌量
+s = 0
+
+# 储存所有线程
+ThreadList = []
+
+# 已经进入休眠
+OnSleep = False
 
 
 """刷播放函数 心动模式"""
 def startPlay(data):
+    global ThreadList
     global SleepTime
     try:
         tlist = []
@@ -114,18 +135,20 @@ def startPlay(data):
                 t1.start()
                 time.sleep(SleepTime)
                 tlist.append(t1)
+                ThreadList.append(t1)
 
 
         for t in tlist:
             t.join()
     except:
-        print("[ERR] 播放模式出现问题，可能会影响使用，您可能被网易云风控了")
+        print("\n[ERR] 播放模式出现问题，可能会影响使用，您可能被网易云风控了")
 
 
 """刷播放函数 若上一个用不了，请尝试这个(对推荐算法可能会产生影响)"""
 def startPlay2():
     global SleepTime
     global Already300
+    global ThreadList
     try:
         sidList = []
 
@@ -153,13 +176,14 @@ def startPlay2():
                 t1 = Thread(target=Play, args=(id,))
                 t1.start()
                 tlist.append(t1)
+                ThreadList.append(t1)
                 time.sleep(SleepTime)
 
         for t in tlist:
             t.join()
 
     except:
-        print("抱歉, 您的账号不兼容与PlayMode=1(也许是因为听歌太少了?), 请尝试PlayMode=0")
+        print("\n抱歉, 您的账号不兼容与PlayMode=1(也许是因为听歌太少了?), 请尝试PlayMode=0")
 
 
 """
@@ -175,6 +199,7 @@ f = open("cookie.txt", "r")
 
 """模拟播放函数 便于多线程(火力全开)"""
 def Play(id):
+    global ThreadList
     global x
     global Already300
     global MaxContinueNum
@@ -219,31 +244,34 @@ def Play(id):
         StopPlay = True
 
 def SongsListener():
+    global ThreadList
     global s
     global uid
     global Already300
     s1 = GetListenSongs(uid)
     while True:
-        try:
-            global Already300
-            # print("当前听歌量: ", s1)
-            if not StopPlay:
-                s2 = GetListenSongs(uid)
-                s = s2 - s1
-                # s = 300
-                print("\rs =", s, "| x = ", x, end="", flush=True)
-                if s >= 300:
-                    Already300 = True
-                    time.sleep(1)
-                    print("\r[STOP] 已到达300首，所有请求已被关闭，等待剩余线程自动终止后进入休眠(x="+str(x)+")", end="", flush=True)
+        if not OnSleep:
+            try:
+                global Already300
+                # print("当前听歌量: ", s1)
+                if not StopPlay:
+                    s2 = GetListenSongs(uid)
+                    s = s2 - s1
+                    # s = 300
+                    print("\rs =", s, "| x = ", x, end="", flush=True)
+                    if s >= 300:
+                        Already300 = True
+                        time.sleep(1)
+                        print("\r[STOP] 已到达300首，所有请求已被关闭，等待剩余线程自动终止后进入休眠(x="+str(x)+")", end="", flush=True)
+                        break
+                else:
                     break
-            else:
-                break
-        except:
-            continue
+            except:
+                continue
 
-
+"""获取听歌量"""
 def GetListenSongs(uid):
+    global ThreadList
     try:
         t = time.time()
         t = str(int(round(t * 1000)))
@@ -256,8 +284,9 @@ def GetListenSongs(uid):
     except:
         pass
 
-
+"""开始"""
 def start():
+    global ThreadList
     global Already300
     global MaxContinueNum
     global x
@@ -267,77 +296,100 @@ def start():
     global s
     global PlayMode
 
-    a = requests.get(api + "/login/status", cookies=cookies, headers=headers)
-    uid = json.loads(a.text)
-    print(a.text)
-    uid = uid["data"]["profile"]["userId"]
-    print("用户UID:", uid)
+    if not OnSleep:
+        a = requests.get(api + "/login/status", cookies=cookies, headers=headers)
+        uid = json.loads(a.text)
+        print(a.text)
+        uid = uid["data"]["profile"]["userId"]
+        print("用户UID:", uid)
 
-    if Enable300:
-        t1 = Thread(target=SongsListener, args=())
-        t1.start()
-
-    if PlayMode == 0:
-        a2 = requests.get(api + "/likelist", cookies=cookies, headers=headers)
-
-        log_print(a2.text)
-        data_ids = json.loads(a2.text)
-        data_ids = data_ids["ids"]
-
-        # 这里从喜欢列表提取几个ID 进行心动模式刷歌曲
-        idsList = []
-        for i in range(p):
-            r = random.randint(randomMin, randomMax)
-            idsList.append(data_ids[i + r])
-
-        a = requests.get(api + "/daily_signin", cookies=cookies, headers=headers)  # 签到
-        log_print("签到成功! -> " + a.text)
-
-        tlist = []
-        print("\n选取次数:", p, "开始播放(mode1)")
-        for n in range(p):
-            t = time.time()
-            t = str(int(round(t * 1000)))
-            a1 = requests.get(
-                api + "/playmode/intelligence/list?id=" + str(idsList[n]) + "&pid=" + sourceid + "&timestamp=" + t,
-                cookies=cookies, headers=headers)
-            data = json.loads(a1.text)
-            data = data["data"]
-            time.sleep(0.1)
-            # log_print(data)
-            t1 = Thread(target=startPlay, args=(data,))
+        if Enable300:
+            t1 = Thread(target=SongsListener, args=())
             t1.start()
-            tlist.append(t1)
+            ThreadList.append(t1)
 
-        for ts in tlist:
-            ts.join()
-    elif PlayMode == 1:
-        startPlay2()
-    else:
-        log_print("[ERR] 请检查您的PlayMode =", PlayMode, "是否正确!")
-        time.sleep(10)
-        exit()
-    log_print("本次任务已完成!")
+        if PlayMode == 0:
+            a2 = requests.get(api + "/likelist", cookies=cookies, headers=headers)
 
-    if s <= ExpectationNum:
-        if MaxContinueNum != -1:
-            if MaxContinueNum > 0:
-                if (MaxContinueNum - 1) <= 0:
-                    PlayMode = 1
-                else:
-                    PlayMode = 0
-                MaxContinueNum -= 1
+            log_print(a2.text)
+            data_ids = json.loads(a2.text)
+            data_ids = data_ids["ids"]
 
-                print("\n未达到期望值，正在重试")
-                start()
-    elif MaxContinueNum == -1:
-         start()
-    else:
-        Already300 = False
-        MaxContinueNum = 0
-        x = 0
-        StopPlay = False
-        s = 0
+            # 这里从喜欢列表提取几个ID 进行心动模式刷歌曲
+            idsList = []
+            for i in range(p):
+                r = random.randint(randomMin, randomMax)
+                idsList.append(data_ids[i + r])
+
+            a = requests.get(api + "/daily_signin", cookies=cookies, headers=headers)  # 签到
+            log_print("签到成功! -> " + a.text)
+
+            tlist = []
+            print("\n选取次数:", p, "开始播放(mode1)")
+            for n in range(p):
+                t = time.time()
+                t = str(int(round(t * 1000)))
+                a1 = requests.get(
+                    api + "/playmode/intelligence/list?id=" + str(idsList[n]) + "&pid=" + sourceid + "&timestamp=" + t,
+                    cookies=cookies, headers=headers)
+                data = json.loads(a1.text)
+                data = data["data"]
+                time.sleep(0.1)
+                # log_print(data)
+                t1 = Thread(target=startPlay, args=(data,))
+                t1.start()
+                tlist.append(t1)
+                ThreadList.append(t1)
+
+
+            for ts in tlist:
+                ts.join()
+        elif PlayMode == 1:
+            startPlay2()
+        else:
+            log_print("\n[ERR] 请检查您的PlayMode =", PlayMode, "是否正确!")
+            time.sleep(10)
+            exit()
+        print("\n本次任务已完成!")
+
+        if s <= ExpectationNum:
+            if MaxContinueNum != -1:
+                if MaxContinueNum > 0:
+                    if (MaxContinueNum - 1) <= 0:
+                        PlayMode = 1
+                    else:
+                        PlayMode = 0
+                    MaxContinueNum -= 1
+
+                    print("\n未达到期望值，正在重试")
+                    start()
+        elif MaxContinueNum == -1:
+             start()
+
+    # Already300 = False
+    # StopPlay = False
+    # s = 0
+    # x = 0
+
+
+"""线程杀手"""
+def _async_raise(tid, exctype):
+    """raises the exception, performs cleanup if needed"""
+    tid = ctypes.c_long(tid)
+    if not inspect.isclass(exctype):
+        exctype = type(exctype)
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(exctype))
+    if res == 0:
+        raise ValueError("invalid thread id")
+    elif res != 1:
+        # """if it returns a number greater than one, you're in trouble,
+        # and you should call it again with exc=NULL to revert the effect"""
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
+        raise SystemError("PyThreadState_SetAsyncExc failed")
+
+def stop_thread(thread):
+    _async_raise(thread.ident, SystemExit)
+
 
 
 for line in f.read().split(';'):
@@ -353,12 +405,40 @@ headers = {'content-type': "application/json",
 # [api]/playmode/intelligence/list?id=1381290206&pid=3031717021
 # [api]/likelist [ids]
 
+def StopAllThread():
+    global Already300
+    while not OnSleep:
+        for t in ThreadList:
+            try:
+                stop_thread(t)
+                print("\r[STOPPING] 正在终止进程 >", t, end="", flush=True)
+                Already300 = True
+            except:
+                pass
+    print("\n[KILL] OK")
+
+def StopListener():
+    while True:
+        input("")
+        StopAllThread()
+
+
 
 if __name__ == '__main__':
+    Already300 = False
+    StopPlay = False
+    x = 0
+    s = 0
+    ThreadList = []
+    OnSleep = False
+
     while True:
+        t1 = Thread(target=StopListener, args=())
+        t1.start()
         start()
 
-        for y in range(86400):
+        for y in range(10):
             time.sleep(1)
             print("\r[Waitting] 下次运行:", 86400 - y, end="", flush=True)
+            OnSleep = True
 
