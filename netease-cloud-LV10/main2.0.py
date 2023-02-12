@@ -330,8 +330,8 @@ def start():
 
                 print("\n未达到期望值，正在重试")
                 start()
-            if MaxContinueNum == -1:
-                start()
+     if MaxContinueNum == -1:
+         start()
         else:
             Already300 = False
             MaxContinueNum = 0
