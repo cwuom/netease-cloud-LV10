@@ -2,7 +2,6 @@ import ctypes
 import inspect
 import sys
 
-import keyboard
 import requests
 import time
 from threading import Thread
