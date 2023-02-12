@@ -330,14 +330,14 @@ def start():
 
                 print("\n未达到期望值，正在重试")
                 start()
-     if MaxContinueNum == -1:
+    elif MaxContinueNum == -1:
          start()
-        else:
-            Already300 = False
-            MaxContinueNum = 0
-            x = 0
-            StopPlay = False
-            s = 0
+    else:
+        Already300 = False
+        MaxContinueNum = 0
+        x = 0
+        StopPlay = False
+        s = 0
 
 
 for line in f.read().split(';'):
