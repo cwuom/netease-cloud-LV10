@@ -6,9 +6,6 @@ from threading import Thread
 import json
 import random
 
-from alive_progress import alive_bar
-from progressbar import progressbar
-
 """
 网易云一键LV10
 
