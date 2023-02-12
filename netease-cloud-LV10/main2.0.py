@@ -266,8 +266,12 @@ def SongsListener():
                         break
                 else:
                     break
+
             except:
                 continue
+
+        else:
+            break
 
 """获取听歌量"""
 def GetListenSongs(uid):
@@ -421,6 +425,8 @@ def StopAllThread():
 
 def StopListener():
     while True:
+        if OnSleep:
+            break
         input("")
         StopAllThread()
 
@@ -434,14 +440,13 @@ if __name__ == '__main__':
         s = 0
         ThreadList = []
         OnSleep = False
-        
+
         t1 = Thread(target=StopListener, args=())
         t1.start()
         start()
 
-        for y in range(86400):
+        OnSleep = True
+        for y in range(10):
             time.sleep(1)
             print("\r[Waitting] 下次运行:", 86400 - y, end="", flush=True)
-            stop_thread(t1)
-            OnSleep = True
 
