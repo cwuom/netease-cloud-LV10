@@ -1,20 +1,3 @@
-import ctypes
-import inspect
-import sys
-
-import requests
-import time
-from threading import Thread
-import json
-import random
-
-"""
-使用前请先安装上面的库
-=====================================
-管理员运行CMD
-> pip3 install 缺失的库名(import后面) -i https://pypi.tuna.tsinghua.edu.cn/simple
-"""
-
 """
 网易云一键LV10
 
@@ -23,7 +6,7 @@ import random
 * main2.0 测试较少，但功能相对增多，可自定义性提升，优化部分代码，若出现致命BUG请使用main.py *
 
 =====================================
-如何工作?-> 
+如何工作?->
 [1]从喜欢列表随机挑选部分歌曲
 [2]从歌曲中获取心动模式列表 / 推荐列表
 [3]多线程将列表带入模拟播放器中
@@ -37,11 +20,55 @@ import random
 注: 按下回车终止所有线程
 """
 
+import platform
+import sys
+import json
+from threading import Thread
+import time
+import json
+import random
+import os
+
+try:
+    import ctypes
+    import inspect
+    import requests
+except:
+    print("导入失败! 正在自动安装缺失的库")
+
+    if platform.system() == 'Windows':
+        print('当前: Windows系统')
+        batCommand = """@echo off
+        %1 mshta vbscript:CreateObject("Shell.Application").ShellExecute("cmd.exe","/c %~s0 ::","","runas",1)(window.close)&&exit
+        cd /d "%~dp0"
+
+        pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple
+        pause
+        """
+        with open("install.bat", "w") as w:
+            w.write(batCommand)
+
+        os.system("install.bat")
+    elif platform.system() == 'Linux':
+        print('当前: Linux系统')
+        os.system("sudo pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple")
+    else:
+        print('其他')
+
+    print("等待执行完成后，重新运行此程序!")
+    exit()
+
+"""
+使用前请先安装上面的库
+=====================================
+管理员运行CMD
+> pip3 install 缺失的库名(import后面) -i https://pypi.tuna.tsinghua.edu.cn/simple
+"""
+
 # ==============================================配置==============================================
 
 # 选取次数 [因为推荐的内容很多是已知的，当无法刷到300首时可以适当增加p值]
 p = 25
-
 
 # 你的API接口 [最后不要加斜杠] eg http://127.0.0.1:3000
 api = "http://localhost:3000"
@@ -66,8 +93,7 @@ randomMin = 0
 
 *当启用MaxContinueNum时，也许会自动改变此数值来达到期望听歌量*
 """
-PlayMode = 0  # 播放模式
-
+PlayMode = 1  # 播放模式
 
 """
 最大尝试次数
@@ -94,9 +120,15 @@ NoThreadLogs = True
 # 期望值，若达不到期望值则会推倒重来
 ExpectationNum = 250
 
-# 给网易云喘息的机会，不然容易风控，如果你觉得影响效率可适当降低此数值
-SleepTime = 1.3
-
+"""
+给网易云喘息的机会，不然容易风控，如果你觉得影响效率可适当降低此数值
+(主要原因是多线程吃带宽太快了，会影响听歌量的获取，若你没有开启Enable300则可以忽视)
+"""
+if Enable300:
+    # 你应该调整这里
+    SleepTime = 1.3
+else:
+    SleepTime = 0.1
 
 # ==============================================================================================
 
@@ -107,6 +139,7 @@ x = 0
 Already300 = False
 # 终止播放判断，不用管
 StopPlay = False
+PlayingMusicId = -1
 
 # UID
 uid = 0
@@ -120,8 +153,30 @@ ThreadList = []
 # 已经进入休眠
 OnSleep = False
 
+while True:
+    try:
+        cookies = {}
+        f = open("cookie.txt", "r")
+
+        for line in f.read().split(';'):
+            name, value = line.strip().split('=', 1)
+            cookies[name] = value  # 为字典cookies添加内容
+
+        break
+    except:
+        cookie = input(
+            "未检测到cookie.txt中含有指定cookie，或是文件不存在? \n请输入有效的网易云cookie!\n=========================\n[cookie]")
+        print("\n=========================")
+        with open("cookie.txt", "w") as w:
+            w.write(cookie)
+
+headers = {'content-type': "application/json",
+           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                         "Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.70"}
 
 """刷播放函数 心动模式"""
+
+
 def startPlay(data):
     global ThreadList
     global SleepTime
@@ -137,7 +192,6 @@ def startPlay(data):
                 tlist.append(t1)
                 ThreadList.append(t1)
 
-
         for t in tlist:
             t.join()
     except:
@@ -145,10 +199,13 @@ def startPlay(data):
 
 
 """刷播放函数 若上一个用不了，请尝试这个(对推荐算法可能会产生影响)"""
+
+
 def startPlay2():
     global SleepTime
     global Already300
     global ThreadList
+    global NoThreadLogs
     try:
         sidList = []
 
@@ -177,7 +234,7 @@ def startPlay2():
                 t1.start()
                 tlist.append(t1)
                 ThreadList.append(t1)
-                time.sleep(SleepTime)
+                time.sleep(0.05)
 
         for t in tlist:
             t.join()
@@ -189,15 +246,16 @@ def startPlay2():
 """
 重写print，用于判断是否打印不重要的日志
 """
+
+
 def log_print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False):
     if not NoThreadLogs:
         print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
 
-cookies = {}
-f = open("cookie.txt", "r")
-
 """模拟播放函数 便于多线程(火力全开)"""
+
+
 def Play(id):
     global ThreadList
     global x
@@ -206,16 +264,18 @@ def Play(id):
     global uid
     global s
     global StopPlay
+    global PlayingMusicId
     if not Already300:
         try:
-            id = id
+            PlayingMusicId = id
             x += 1
             t = time.time()
             t = str(int(round(t * 1000)))
             if not ListenAll:
                 playTime = random.randint(90, 120)
                 a = requests.get(
-                    api + "/scrobble?id=" + str(id) + "&sourceid=" + sourceid + "&time=" + str(playTime) + "&timestamp=" + t,
+                    api + "/scrobble?id=" + str(id) + "&sourceid=" + sourceid + "&time=" + str(
+                        playTime) + "&timestamp=" + t,
                     cookies=cookies, headers=headers)
                 log_print(a.text)
                 log_print("ID->" + str(id) + " -- OK!")
@@ -243,6 +303,7 @@ def Play(id):
         exit()
         StopPlay = True
 
+
 def SongsListener():
     global ThreadList
     global s
@@ -258,11 +319,11 @@ def SongsListener():
                     s2 = GetListenSongs(uid)
                     s = s2 - s1
                     # s = 300
-                    print("\rs =", s, "| x = ", x, end="", flush=True)
                     if s >= 300:
                         Already300 = True
                         time.sleep(1)
-                        print("\r[STOP] 已到达300首，所有请求已被关闭，等待剩余线程自动终止后进入休眠(x="+str(x)+")", end="", flush=True)
+                        print("\r[STOP] 已到达300首，所有请求已被关闭，等待剩余线程自动终止后进入休眠(x=" + str(x) + ")",
+                              end="", flush=True)
                         break
                 else:
                     break
@@ -273,22 +334,47 @@ def SongsListener():
         else:
             break
 
+
+def ShowLogs():
+    global x
+    global s
+    global PlayingMusicId
+    n = 0
+    while True:
+        if OnSleep or Already300:
+            break
+        if PlayingMusicId != -1:
+            print("\rs =", s, "| x = ", x, "| ID =", PlayingMusicId, end="", flush=True)
+        else:
+            print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), end="", flush=True)
+            n += 1
+
+        time.sleep(0.3)
+
+
 """获取听歌量"""
+
+
 def GetListenSongs(uid):
     global ThreadList
-    try:
-        t = time.time()
-        t = str(int(round(t * 1000)))
-        # http://localhost:3000/login/status
-        a = requests.get(api + "/user/detail?uid=" + str(uid) + "&timestamp=" + t, cookies=cookies, headers=headers)
-        listenSongs = json.loads(a.text)
-        listenSongs = listenSongs["listenSongs"]
-        # print("累积听歌->", listenSongs)
-        return listenSongs
-    except:
-        pass
+    for x in range(3):
+        try:
+            t = time.time()
+            t = str(int(round(t * 1000)))
+            # http://localhost:3000/login/status
+            a = requests.get(api + "/user/detail?uid=" + str(uid) + "&timestamp=" + t, cookies=cookies, headers=headers)
+            listenSongs = json.loads(a.text)
+            listenSongs = listenSongs["listenSongs"]
+            # print("累积听歌->", listenSongs)
+            return listenSongs
+        except:
+            time.sleep(5)
+            continue
+
 
 """开始"""
+
+
 def start():
     global ThreadList
     global Already300
@@ -301,7 +387,11 @@ def start():
     global PlayMode
 
     if not OnSleep:
-        a = requests.get(api + "/login/status", cookies=cookies, headers=headers)
+        try:
+            a = requests.get(api + "/login/status", cookies=cookies, headers=headers)
+        except:
+            print("[ERR] 此程序未能连接到您的API! 请检查您的API是否已经跑起来了?")
+            sys.exit()
         uid = json.loads(a.text)
         print(a.text)
         uid = uid["data"]["profile"]["userId"]
@@ -311,6 +401,11 @@ def start():
             t1 = Thread(target=SongsListener, args=())
             t1.start()
             ThreadList.append(t1)
+
+            t2 = Thread(target=ShowLogs, args=())
+            t2.start()
+            ThreadList.append(t1)
+            ThreadList.append(t2)
 
         if PlayMode == 0:
             a2 = requests.get(api + "/likelist", cookies=cookies, headers=headers)
@@ -331,20 +426,24 @@ def start():
             tlist = []
             print("\n选取次数:", p, "开始播放(mode1)")
             for n in range(p):
-                t = time.time()
-                t = str(int(round(t * 1000)))
-                a1 = requests.get(
-                    api + "/playmode/intelligence/list?id=" + str(idsList[n]) + "&pid=" + sourceid + "&timestamp=" + t,
-                    cookies=cookies, headers=headers)
-                data = json.loads(a1.text)
-                data = data["data"]
-                time.sleep(0.1)
-                # log_print(data)
-                t1 = Thread(target=startPlay, args=(data,))
-                t1.start()
-                tlist.append(t1)
-                ThreadList.append(t1)
-
+                try:
+                    t = time.time()
+                    t = str(int(round(t * 1000)))
+                    a1 = requests.get(
+                        api + "/playmode/intelligence/list?id=" + str(
+                            idsList[n]) + "&pid=" + sourceid + "&timestamp=" + t,
+                        cookies=cookies, headers=headers)
+                    data = json.loads(a1.text)
+                    data = data["data"]
+                    time.sleep(0.1)
+                    # log_print(data)
+                    t1 = Thread(target=startPlay, args=(data,))
+                    t1.start()
+                    tlist.append(t1)
+                    ThreadList.append(t1)
+                except:
+                    print("[ERR] 数据获取失败，正在重新请求并解析数据")
+                    continue
 
             for ts in tlist:
                 ts.join()
@@ -368,7 +467,7 @@ def start():
                     print("\n未达到期望值，正在重试")
                     start()
         elif MaxContinueNum == -1:
-             start()
+            start()
 
     # Already300 = False
     # StopPlay = False
@@ -377,6 +476,8 @@ def start():
 
 
 """线程杀手"""
+
+
 def _async_raise(tid, exctype):
     """raises the exception, performs cleanup if needed"""
     tid = ctypes.c_long(tid)
@@ -391,19 +492,11 @@ def _async_raise(tid, exctype):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
+
 def stop_thread(thread):
     _async_raise(thread.ident, SystemExit)
 
 
-
-for line in f.read().split(';'):
-    name, value = line.strip().split('=', 1)
-    cookies[name] = value  # 为字典cookies添加内容
-
-
-headers = {'content-type': "application/json",
-           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                         "Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.70"}
 # 488249475
 
 # [api]/playmode/intelligence/list?id=1381290206&pid=3031717021
@@ -423,13 +516,13 @@ def StopAllThread():
                 pass
     print("\n[KILL] OK")
 
+
 def StopListener():
     while True:
         if OnSleep:
             break
         input("")
         StopAllThread()
-
 
 
 if __name__ == '__main__':
@@ -449,4 +542,3 @@ if __name__ == '__main__':
         for y in range(86400):
             time.sleep(1)
             print("\r[Waitting] 下次运行:", 86400 - y, end="", flush=True)
-
