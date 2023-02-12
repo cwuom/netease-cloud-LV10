@@ -12,9 +12,9 @@ from progressbar import progressbar
 """
 网易云一键LV10
 
-*main2.0 测试较少，若无法使用请用main.py*
-
 [python 3.7.9]
+
+* main2.0 测试较少，但功能相对增多，可自定义性提升，优化部分代码，若出现致命BUG请使用main.py *
 
 =====================================
 如何工作?-> 
@@ -71,7 +71,7 @@ n -> 尝试n次后休眠
 
 -1 -> 一直尝试，直到达到期望值（慎用）
 """
-MaxContinueNum = 3
+MaxContinueNum = 2
 
 """
 刷到300首后停止
@@ -86,7 +86,7 @@ NoThreadLogs = True
 ExpectationNum = 250
 
 # 给网易云喘息的机会，不然容易风控，如果你觉得影响效率可适当降低此数值
-SleepTime = 1.5
+SleepTime = 1.3
 
 # ==============================================================================================
 
@@ -323,22 +323,24 @@ def start():
     log_print("本次任务已完成!")
 
     if s <= ExpectationNum:
-        if MaxContinueNum > 0:
-            if (MaxContinueNum - 1) <= 0:
-                PlayMode = 1
-            else:
-                PlayMode = 0
-            MaxContinueNum -= 1
+        if MaxContinueNum != -1:
+            if MaxContinueNum > 0:
+                if (MaxContinueNum - 1) <= 0:
+                    PlayMode = 1
+                else:
+                    PlayMode = 0
+                MaxContinueNum -= 1
 
-            start()
-            print("未达到期望值，正在重试")
-    else:
-        Already300 = False
-        MaxContinueNum = 0
-        x = 0
-        StopPlay = False
-        s = 0
-
+                print("\n未达到期望值，正在重试")
+                start()
+            if MaxContinueNum == -1:
+                start()
+        else:
+            Already300 = False
+            MaxContinueNum = 0
+            x = 0
+            StopPlay = False
+            s = 0
 
 
 for line in f.read().split(';'):
