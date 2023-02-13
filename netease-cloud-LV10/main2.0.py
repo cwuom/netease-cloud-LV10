@@ -20,52 +20,21 @@
 注: 按下回车终止所有线程
 """
 
-import platform
-import sys
-import json
-from threading import Thread
-import time
-import json
-import random
-import os
 
-try:
-    import ctypes
-    import inspect
-    import requests
-except:
-    print("导入失败! 正在自动安装缺失的库")
-
-    if platform.system() == 'Windows':
-        print('当前: Windows系统')
-        batCommand = """@echo off
-        %1 mshta vbscript:CreateObject("Shell.Application").ShellExecute("cmd.exe","/c %~s0 ::","","runas",1)(window.close)&&exit
-        cd /d "%~dp0"
-
-        pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple
-        pause
-        """
-        with open("install.bat", "w") as w:
-            w.write(batCommand)
-
-        os.system("install.bat")
-    elif platform.system() == 'Linux':
-        print('当前: Linux系统')
-        os.system("sudo pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple")
-    else:
-        print('其他')
-
-    print("等待执行完成后，重新运行此程序!")
-    exit()
-
-"""
-使用前请先安装上面的库
-=====================================
-管理员运行CMD
-> pip3 install 缺失的库名(import后面) -i https://pypi.tuna.tsinghua.edu.cn/simple
-"""
 
 # ==============================================配置==============================================
+
+"""
+此项为你的网易云UID 如果值为auto则会自动获取UID
+若程序无法自动获取您的UID，请删除"auto"并手动填写此项
+
+
+* 如何获取?
+> http://localhost:3000/qrlogin.html 中找到"id": xxxxx(xxx为纯数字)后复制 替换下面的UID 
+        http://localhost:3000/因需求改变，取决与你的服务器搭建在何处，若在此电脑上搭建请直接访问它
+"""
+UID = "auto"
+
 
 # 选取次数 [因为推荐的内容很多是已知的，当无法刷到300首时可以适当增加p值]
 p = 25
@@ -120,6 +89,7 @@ NoThreadLogs = True
 # 期望值，若达不到期望值则会推倒重来
 ExpectationNum = 250
 
+
 """
 给网易云喘息的机会，不然容易风控，如果你觉得影响效率可适当降低此数值
 (主要原因是多线程吃带宽太快了，会影响听歌量的获取，若你没有开启Enable300则可以忽视)
@@ -131,6 +101,52 @@ else:
     SleepTime = 0.1
 
 # ==============================================================================================
+
+import platform
+import sys
+import json
+from threading import Thread
+import time
+import json
+import random
+import os
+import webbrowser
+
+try:
+    import ctypes
+    import inspect
+    import requests
+except:
+    print("导入失败! 正在自动安装缺失的库")
+
+    if platform.system() == 'Windows':
+        print('当前: Windows系统')
+        batCommand = """@echo off
+        %1 mshta vbscript:CreateObject("Shell.Application").ShellExecute("cmd.exe","/c %~s0 ::","","runas",1)(window.close)&&exit
+        cd /d "%~dp0"
+
+        pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple
+        pause
+        """
+        with open("install.bat", "w") as w:
+            w.write(batCommand)
+
+        os.system("install.bat")
+    elif platform.system() == 'Linux':
+        print('当前: Linux系统')
+        os.system("sudo pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple")
+    else:
+        print('其他')
+
+    print("等待执行完成后，重新运行此程序!")
+    exit()
+
+"""
+使用前请先安装上面的库
+=====================================
+管理员运行CMD
+> pip3 install 缺失的库名(import后面) -i https://pypi.tuna.tsinghua.edu.cn/simple
+"""
 
 
 # 记数器，不用管
@@ -152,6 +168,7 @@ ThreadList = []
 
 # 已经进入休眠
 OnSleep = False
+
 
 while True:
     try:
@@ -234,7 +251,7 @@ def startPlay2():
                 t1.start()
                 tlist.append(t1)
                 ThreadList.append(t1)
-                time.sleep(0.05)
+                time.sleep(0.1)
 
         for t in tlist:
             t.join()
@@ -344,7 +361,7 @@ def ShowLogs():
         if OnSleep or Already300:
             break
         if PlayingMusicId != -1:
-            print("\rs =", s, "| x = ", x, "| ID =", PlayingMusicId, end="", flush=True)
+            print("\r听歌量 =", s, "| 听歌数 = ", x, "| ID =", PlayingMusicId, end="", flush=True)
         else:
             print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), end="", flush=True)
             n += 1
@@ -357,7 +374,7 @@ def ShowLogs():
 
 def GetListenSongs(uid):
     global ThreadList
-    for x in range(3):
+    for x in range(100):
         try:
             t = time.time()
             t = str(int(round(t * 1000)))
@@ -368,7 +385,6 @@ def GetListenSongs(uid):
             # print("累积听歌->", listenSongs)
             return listenSongs
         except:
-            time.sleep(5)
             continue
 
 
@@ -385,16 +401,43 @@ def start():
     global ExpectationNum
     global s
     global PlayMode
+    global UID
 
     if not OnSleep:
-        try:
-            a = requests.get(api + "/login/status", cookies=cookies, headers=headers)
-        except:
-            print("[ERR] 此程序未能连接到您的API! 请检查您的API是否已经跑起来了?")
-            sys.exit()
-        uid = json.loads(a.text)
-        print(a.text)
-        uid = uid["data"]["profile"]["userId"]
+        if UID == "auto":
+            try:
+                t = time.time()
+                t = str(int(round(t * 1000)))
+                a = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
+                # print(a.text)
+            except:
+                print("[ERR] 此程序未能连接到您的API! 请检查您的API是否已经跑起来了?")
+                sys.exit()
+            uid = json.loads(a.text)
+            # print(a.text)
+            while True:
+                try:
+                    uid = uid["data"]["profile"]["userId"]
+                except:
+                    print("[ERR] 未能正确获取到UID，正在尝试更换解析方式")
+                    a = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
+                    print("[DEBUG]", a.text)
+                    uid = json.loads(a.text)
+                    try:
+                        uid = uid["data"]["account"]["id"]
+                        break
+                    except:
+                        print("[ERR] 无法解析UID，请尝试手动输入")
+                        print("[Tips] " + api + "qrlogin.html - 按下回车打开此网页")
+                        input("")
+                        webbrowser.open(api + "/login/status")
+                        uid = input("找到[data] -> [profile] -> [userId] 后复制输入到此处\n[UID]>")
+                    time.sleep(5)
+                    continue
+
+        else:
+            uid = UID
+
         print("用户UID:", uid)
 
         if Enable300:
@@ -521,7 +564,10 @@ def StopListener():
     while True:
         if OnSleep:
             break
-        input("")
+        try:
+            input("")
+        except:
+            print("\n[STOP] 监听线程异常退出，请再次终止运行来关闭此程序")
         StopAllThread()
 
 
