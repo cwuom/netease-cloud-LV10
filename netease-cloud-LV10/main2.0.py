@@ -363,7 +363,7 @@ def ShowLogs():
         if PlayingMusicId != -1:
             print("\r听歌量 =", s, "| 听歌数 = ", x, "| ID =", PlayingMusicId, end="", flush=True)
         else:
-            print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), end="", flush=True)
+            print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), "     " ,end="", flush=True)
             n += 1
 
         time.sleep(0.3)
@@ -427,11 +427,8 @@ def start():
                         uid = uid["data"]["account"]["id"]
                         break
                     except:
-                        print("[ERR] 无法解析UID，请尝试手动输入")
-                        print("[Tips] " + api + "qrlogin.html - 按下回车打开此网页")
-                        input("")
-                        webbrowser.open(api + "/login/status")
-                        uid = input("找到[data] -> [profile] -> [userId] 后复制输入到此处\n[UID]>")
+                        print("[ERR] 无法解析UID，请尝试更改源码顶部中的UID选项")
+                        sys.exit(-1)
                     time.sleep(5)
                     continue
 
@@ -439,6 +436,10 @@ def start():
             uid = UID
 
         print("用户UID:", uid)
+        nickname = requests.get(api + "/user/detail?uid=" + str(uid) + "&timestamp=" + t, cookies=cookies, headers=headers)
+        nickname = json.loads(nickname.text)
+        nickname = nickname["profile"]["nickname"]
+        print("用户昵称:", nickname)
 
         if Enable300:
             t1 = Thread(target=SongsListener, args=())
