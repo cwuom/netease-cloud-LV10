@@ -100,6 +100,9 @@ if Enable300:
 else:
     SleepTime = 0.1
 
+# 忽略UID解析错误提示，将在提示过后自动变为True
+IgnoreUidError = False
+
 # ==============================================================================================
 
 import platform
@@ -168,6 +171,8 @@ ThreadList = []
 
 # 已经进入休眠
 OnSleep = False
+
+ListenerThread = []
 
 
 while True:
@@ -402,10 +407,14 @@ def start():
     global s
     global PlayMode
     global UID
+    global IgnoreUidError
+    global OnSleep
+    global ListenerThread
 
     if not OnSleep:
         if UID == "auto":
             try:
+                print("[Connecting] "+api)
                 t = time.time()
                 t = str(int(round(t * 1000)))
                 a = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
@@ -415,16 +424,18 @@ def start():
                 sys.exit()
             uid = json.loads(a.text)
             # print(a.text)
+            print("[Connected] " + api+"\n=================================\n")
             while True:
                 try:
                     uid = uid["data"]["profile"]["userId"]
                 except:
-                    print("[ERR] 未能正确获取到UID，正在尝试更换解析方式")
+                    if not IgnoreUidError:
+                        print("[ERR] 未能正确获取到UID，正在尝试更换解析方式")
                     a = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
-                    print("[DEBUG]", a.text)
                     uid = json.loads(a.text)
                     try:
                         uid = uid["data"]["account"]["id"]
+                        IgnoreUidError = True
                         break
                     except:
                         print("[ERR] 无法解析UID，请尝试更改源码顶部中的UID选项")
@@ -436,9 +447,14 @@ def start():
             uid = UID
 
         print("用户UID:", uid)
-        nickname = requests.get(api + "/user/detail?uid=" + str(uid) + "&timestamp=" + t, cookies=cookies, headers=headers)
-        nickname = json.loads(nickname.text)
-        nickname = nickname["profile"]["nickname"]
+        try:
+            nickname = requests.get(api + "/user/detail?uid=" + str(uid) + "&timestamp=" + t, cookies=cookies, headers=headers)
+            nickname = json.loads(nickname.text)
+            nickname = nickname["profile"]["nickname"]
+        except:
+            print("[ERR] 在处理UID="+str(uid)+"时发生错误(未能解析到nickname)，请确认UID正确！")
+            exit(-1)
+
         print("用户昵称:", nickname)
 
         if Enable300:
@@ -562,6 +578,7 @@ def StopAllThread():
 
 
 def StopListener():
+    global OnSleep
     while True:
         if OnSleep:
             break
@@ -583,6 +600,8 @@ if __name__ == '__main__':
 
         t1 = Thread(target=StopListener, args=())
         t1.start()
+        ListenerThread.append(t1)
+
         start()
 
         OnSleep = True
