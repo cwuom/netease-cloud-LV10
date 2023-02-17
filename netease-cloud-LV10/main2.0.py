@@ -373,7 +373,7 @@ def ShowLogs():
         if OnSleep or Already300:
             break
         if PlayingMusicId != -1:
-            print("\r听歌量 =", s, "| 听歌数 = ", x, "| ID =", "      ", PlayingMusicId, end="", flush=True)
+            print("\r听歌量 =", s, "| 听歌数 = ", x, "| ID =", PlayingMusicId,"        ", end="", flush=True)
         else:
             print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), "     " , end="", flush=True)
             n += 1
