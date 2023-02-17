@@ -106,50 +106,17 @@ IgnoreUidError = False
 
 # ==============================================================================================
 
-import platform
 import sys
-import json
 from threading import Thread
 import time
 import json
 import random
-import os
-import webbrowser
 
-try:
-    import ctypes
-    import inspect
-    import requests
-    import keyboard
-    import pandas
-except:
-    print("导入失败! 正在自动安装缺失的库")
 
-    if platform.system() == 'Windows':
-        print('当前: Windows系统')
-        batCommand = """@echo off
-        %1 mshta vbscript:CreateObject("Shell.Application").ShellExecute("cmd.exe","/c %~s0 ::","","runas",1)(window.close)&&exit
-        cd /d "%~dp0"
-
-        pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple
-        pip3 install keyboard -i https://pypi.tuna.tsinghua.edu.cn/simple
-        pip3 install pandas -i https://pypi.tuna.tsinghua.edu.cn/simple
-        pause
-        """
-        with open("install.bat", "w") as w:
-            w.write(batCommand)
-
-        os.system("install.bat")
-    elif platform.system() == 'Linux':
-        print('当前: Linux系统')
-        os.system("sudo pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple")
-        os.system("sudo pip3 install keyboard -i https://pypi.tuna.tsinghua.edu.cn/simple")
-        os.system("sudo pip3 install pandas -i https://pypi.tuna.tsinghua.edu.cn/simple")
-    else:
-        print('其他')
-
-    print("等待执行完成后，重新运行此程序!")
-    exit()
+import ctypes
+import inspect
+import requests
+import keyboard
 
 """
 使用前请先安装上面的库
@@ -248,11 +215,14 @@ def startPlay2():
             musicIdsList = []
             for ids in sidList:
                 # /playlist/track/all?id=24381616
-                musicList = json.loads(
-                    requests.get(api + "/playlist/track/all?id=" + str(ids), cookies=cookies, headers=headers).text)
-                for id in musicList["privileges"]:
-                    log_print("获取到音乐:", id["id"])
-                    musicIdsList.append(id["id"])
+                try:
+                    musicList = json.loads(
+                        requests.get(api + "/playlist/track/all?id=" + str(ids), cookies=cookies, headers=headers).text)
+                    for id in musicList["privileges"]:
+                        log_print("获取到音乐:", id["id"])
+                        musicIdsList.append(id["id"])
+                except:
+                    print("\n[ERR] 忽略了一个歌单数据 : 无法解析")
 
         print("\n总歌曲数量:", len(musicIdsList), "开始播放(mode2)")
         global x
@@ -268,8 +238,8 @@ def startPlay2():
         for t in tlist:
             t.join()
 
-    except:
-        print("\n抱歉, 您的账号不兼容与PlayMode=1(也许是因为听歌太少了?), 请尝试PlayMode=0")
+    except Exception as e:
+        print("\n抱歉, 您的账号不兼容与PlayMode=1(也许是因为听歌太少了?), 请尝试PlayMode=0\nerr>",e)
 
 
 """
