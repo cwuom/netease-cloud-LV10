@@ -103,6 +103,7 @@ else:
 # 忽略UID解析错误提示，将在提示过后自动变为True
 IgnoreUidError = False
 
+
 # ==============================================================================================
 
 import platform
@@ -119,6 +120,8 @@ try:
     import ctypes
     import inspect
     import requests
+    import keyboard
+    import pandas
 except:
     print("导入失败! 正在自动安装缺失的库")
 
@@ -129,6 +132,8 @@ except:
         cd /d "%~dp0"
 
         pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple
+        pip3 install keyboard -i https://pypi.tuna.tsinghua.edu.cn/simple
+        pip3 install pandas -i https://pypi.tuna.tsinghua.edu.cn/simple
         pause
         """
         with open("install.bat", "w") as w:
@@ -138,6 +143,8 @@ except:
     elif platform.system() == 'Linux':
         print('当前: Linux系统')
         os.system("sudo pip3 install requests -i https://pypi.tuna.tsinghua.edu.cn/simple")
+        os.system("sudo pip3 install keyboard -i https://pypi.tuna.tsinghua.edu.cn/simple")
+        os.system("sudo pip3 install pandas -i https://pypi.tuna.tsinghua.edu.cn/simple")
     else:
         print('其他')
 
@@ -366,9 +373,9 @@ def ShowLogs():
         if OnSleep or Already300:
             break
         if PlayingMusicId != -1:
-            print("\r听歌量 =", s, "| 听歌数 = ", x, "| ID =", PlayingMusicId, end="", flush=True)
+            print("\r听歌量 =", s, "| 听歌数 = ", x, "| ID =", "      ", PlayingMusicId, end="", flush=True)
         else:
-            print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), "     " ,end="", flush=True)
+            print("\r[STARTING] 正在获取数据并解析，请稍后", "." * (n % 4), "     " , end="", flush=True)
             n += 1
 
         time.sleep(0.3)
@@ -414,16 +421,17 @@ def start():
     if not OnSleep:
         if UID == "auto":
             try:
+                print("\n=================================")
                 print("[Connecting] "+api)
                 t = time.time()
                 t = str(int(round(t * 1000)))
-                a = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
-                # print(a.text)
+                res = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
+                # print(res.text)
             except:
                 print("[ERR] 此程序未能连接到您的API! 请检查您的API是否已经跑起来了?")
                 sys.exit()
-            uid = json.loads(a.text)
-            # print(a.text)
+            uid = json.loads(res.text)
+            # print(res.text)
             print("[Connected] " + api+"\n=================================\n")
             while True:
                 try:
@@ -431,8 +439,8 @@ def start():
                 except:
                     if not IgnoreUidError:
                         print("[ERR] 未能正确获取到UID，正在尝试更换解析方式")
-                    a = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
-                    uid = json.loads(a.text)
+                    res = requests.get(api + "/login/status?" + "&timestamp=" + t, cookies=cookies, headers=headers)
+                    uid = json.loads(res.text)
                     try:
                         uid = uid["data"]["account"]["id"]
                         IgnoreUidError = True
@@ -468,10 +476,10 @@ def start():
             ThreadList.append(t2)
 
         if PlayMode == 0:
-            a2 = requests.get(api + "/likelist", cookies=cookies, headers=headers)
+            res2 = requests.get(api + "/likelist", cookies=cookies, headers=headers)
 
-            log_print(a2.text)
-            data_ids = json.loads(a2.text)
+            log_print(res2.text)
+            data_ids = json.loads(res2.text)
             data_ids = data_ids["ids"]
 
             # 这里从喜欢列表提取几个ID 进行心动模式刷歌曲
@@ -480,8 +488,8 @@ def start():
                 r = random.randint(randomMin, randomMax)
                 idsList.append(data_ids[i + r])
 
-            a = requests.get(api + "/daily_signin", cookies=cookies, headers=headers)  # 签到
-            log_print("签到成功! -> " + a.text)
+            res = requests.get(api + "/daily_signin", cookies=cookies, headers=headers)  # 签到
+            log_print("签到成功! -> " + res.text)
 
             tlist = []
             print("\n选取次数:", p, "开始播放(mode1)")
@@ -579,11 +587,12 @@ def StopAllThread():
 
 def StopListener():
     global OnSleep
+    global Already300
     while True:
         if OnSleep:
             break
         try:
-            input("")
+            keyboard.wait("`")
         except:
             print("\n[STOP] 监听线程异常退出，请再次终止运行来关闭此程序")
         StopAllThread()
@@ -605,6 +614,18 @@ if __name__ == '__main__':
         start()
 
         OnSleep = True
-        for y in range(86400):
+        now_hour = time.strftime("%H", time.localtime())
+        now_min = time.strftime("%M", time.localtime())
+        if now_hour < "08":
+            rest = 8 - int(now_hour)
+            sleeptime = (rest - 1) * 3600 + (60 - int(now_min)) * 60
+        elif now_hour > "08":
+            rest = 8 - int(now_hour) + 24
+            sleeptime = (rest - 1) * 3600 + (60 - int(now_min)) * 60
+        elif now_hour == "08":
+            continue
+
+        sleeptime = sleeptime + 3600
+        for y in range(sleeptime):
             time.sleep(1)
-            print("\r[Waitting] 下次运行:", 86400 - y, end="", flush=True)
+            print("\r[Waitting] 下次运行:", sleeptime - y, "   ", end="", flush=True)
