@@ -1,5 +1,5 @@
 <div align="center">
-   <img width="500" src="logo.png" alt="logo"></br>
+   <img width="500" src="logo_new.png" alt="logo"></br>
 
 
 # **NeteaseCloudMusicTools**   - 网易云升级助手
