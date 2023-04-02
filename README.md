@@ -42,21 +42,24 @@
 - 所有方案基本采用多线程
 
 #### 升级
-- LV9的账户 300 首刷满大约 3min 较低等级 1-2min 左右 
+- **[mode1] **LV9无法稳定刷满300首（高等级弃）
+- **[mode2] **LV9的账户 300 首刷满大约 3min 较低等级 1-2min 左右
 
 #### 单曲听歌量
--  模式二可在60s左右可达到100 ~ 1000+单曲听歌量增长
+- **[mode1]**可控效率，可自行测试
+- **[mode2]**可在60s左右可达到100 ~ 1000+单曲听歌量增长
+- **[mode3]**可在60s左右达到350+单曲听歌量增长
 
 ------------
 
 #### 支持的平台
-- 打包版本目前只支持windows，但源码可以复制到linux主机上(前提: 有py环境, 模块正常)
+- 打包版本目前只支持**windows**，但源码可以复制到linux主机上，**见下文**
 
 ------------
 
 ### 便携性/兼容性
-- 操作简单，哪怕没有基础也可以快速部署，因为看见有人收费所以想着自己做了一个，但网上大多数升级工具(除收费，网站版)部署困难，但此程序已经整合了所需环境，双击打开就可运行
-- 不兼容Windows 7或老架构的机器，测试环境Windows 11 专业版 22H2
+- **操作简单**，哪怕没有基础也可以快速部署，因为看见有人收费所以想着自己做了一个，但网上大多数升级工具(除收费，网站版)部署困难，但此程序已经整合了所需环境，双击打开就可运行
+- **不兼容Windows 7或老架构的机器**，测试环境Windows 11 专业版 22H2
 
 
 ------------
@@ -69,16 +72,16 @@
 
 ### 我该如何在Linux/服务器上使用它？
 #### 注意
-- 软件在非必要时不会提供Linux版本，但并不代表无法使用，下列会给出在Linux/服务器上部署此项目的方法
-- NeteaseCloudMusicTools1.5b已在Debian上测试通过，但最新版本往往不会第一时间放在上述环境中测试，若要使用还需自行折腾
-- 在此环境中不能保证所有功能能够正常使用
+- **软件在非必要时不会提供Linux版本，但并不代表无法使用，下列会给出在Linux/服务器上部署此项目的方法**
+- **NeteaseCloudMusicTools1.5b已在Debian上测试通过，但最新版本往往不会第一时间放在上述环境中测试，若要使用还需自行折腾**
+- **在此环境中不能保证所有功能能够正常使用**
 
 #### 使用
-1. 在[Releases](https://github.com/cwuom/netease-cloud-LV10/releases "Releases")中下载main_exe.py(下述简称文件)
+1. 在[Releases](https://github.com/cwuom/netease-cloud-LV10/releases "Releases")中下载main_exe.py(**下述简称文件**)
 2. 将文件转移到你的Linux主机
-3. 将cookie.txt转移到文件所在目录
+3. 将**cookie.txt**转移到文件所在目录
 4. 下载文件所需模块
-5. 手动启动node服务，在[NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi "NeteaseCloudMusicApi")中查看详细教程
+5. **手动启动node服务**，在[NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi "NeteaseCloudMusicApi")中查看详细教程
 6. 准备完毕，在终端启动文件
 7. 正常使用
 
@@ -93,7 +96,7 @@
 
 ## 声明
 ### 一切开发旨在学习，请勿用于非法用途
-- NeteaseCloudMusicTools是一个完全免费的软件，仅供娱乐使用
-- NeteaseCloudMusicTools不会对任何人采取收费行为，如果你希望它更好，可以赞助此项目
-- 介于项目的特殊性，开发者可能在未来会随时停更或删除此项目
-- 软件运行不会窃取你的cookie，如果账户被盗请不要找我，首先检查分享时cookie是否清空
+- **NeteaseCloudMusicTools是一个完全免费的软件，仅供娱乐使用**
+- **NeteaseCloudMusicTools不会对任何人采取收费行为**，如果你希望它更好，可以赞助此项目
+- 介于项目的特殊性，**开发者可能在未来会随时停更或删除此项目**
+- **软件运行不会窃取你的cookie**，如果账户被盗请不要找我，首先检查分享时cookie是否清空
